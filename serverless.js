@@ -1,6 +1,11 @@
 const { Component } = require("@serverless/core");
 const { equals, difference } = require("ramda");
 const AWS = require("aws-sdk");
+const {
+  createGlobalTable,
+  updateGlobalTable,
+  getDeployedRegions
+} = require("./utils");
 
 class GlobalDynamoDBTableComponent extends Component {
   get client() {
@@ -9,75 +14,79 @@ class GlobalDynamoDBTableComponent extends Component {
     });
   }
 
+  createTableInRegions(
+    globalTableName,
+    regions,
+    attributeDefinitions,
+    keySchema
+  ) {
+    const createTables = regions.map(async region => {
+      const dynamodb = await this.load(
+        "@serverless/aws-dynamodb",
+        `${globalTableName}_${region}`
+      );
+
+      return dynamodb({
+        name: globalTableName,
+        region,
+        attributeDefinitions: attributeDefinitions,
+        keySchema: keySchema
+      });
+    });
+
+    return Promise.all(createTables);
+  }
+
+  deleteTableFromRegions(globalTableName, regions) {
+    const deleteTables = regions.map(async region => {
+      const dynamodb = await this.load(
+        "@serverless/aws-dynamodb",
+        `${globalTableName}_${region}`
+      );
+
+      return dynamodb.remove();
+    });
+
+    return Promise.all(deleteTables);
+  }
+
   async default(inputs = {}) {
     const inputRegions = inputs.replicationGroup.sort();
     const tableName = inputs.tableName;
 
-    let regionsCurrentlyDeployed = [];
+    let deployedRegions = [];
     let globalTableDoesNotExist = false;
 
     try {
-      const { GlobalTableDescription } = await this.client
-        .describeGlobalTable({
-          GlobalTableName: tableName
-        })
-        .promise();
-
-      regionsCurrentlyDeployed = GlobalTableDescription.ReplicationGroup.map(
-        rg => rg.RegionName
-      ).sort();
+      deployedRegions = await getDeployedRegions(this.client, tableName);
     } catch (err) {
       globalTableDoesNotExist = true;
     }
 
-    if (equals(regionsCurrentlyDeployed, inputRegions)) {
+    if (equals(deployedRegions, inputRegions)) {
       return;
     }
 
-    const addRegions = difference(inputRegions, regionsCurrentlyDeployed);
-    const deleteRegions = difference(regionsCurrentlyDeployed, inputRegions);
+    const addRegions = difference(inputRegions, deployedRegions);
+    const deleteRegions = difference(deployedRegions, inputRegions);
 
-    const createTableTasks = addRegions.map(async region => {
-      const dynamodb = await this.load(
-        "@serverless/aws-dynamodb",
-        `${inputs.tableName}_${region}`
-      );
-
-      return dynamodb({
-        name: inputs.tableName,
-        region,
-        attributeDefinitions: inputs.attributeDefinitions,
-        keySchema: inputs.keySchema
-      });
-    });
-
-    await Promise.all(createTableTasks);
+    await this.createTableInRegions(
+      tableName,
+      addRegions,
+      inputs.attributeDefinitions,
+      inputs.keySchema
+    );
+    await this.deleteTableFromRegions(tableName, deleteRegions);
 
     if (globalTableDoesNotExist) {
-      const {
-        GlobalTableDescription: { GlobalTableName, GlobalTableArn }
-      } = await this.client
-        .createGlobalTable({
-          GlobalTableName: inputs.tableName,
-          ReplicationGroup: inputRegions.map(r => ({
-            RegionName: r
-          }))
-        })
-        .promise();
-
-      return { GlobalTableName, GlobalTableArn };
+      return createGlobalTable(this.client, tableName, inputRegions);
     } else {
-      const addReplicas = addRegions.map(r => ({ Create: { RegionName: r } }));
-      const deleteReplicas = deleteRegions.map(r => ({
-        Delete: { RegionName: r }
-      }));
-
-      await this.client
-        .updateGlobalTable({
-          GlobalTableName: tableName,
-          ReplicaUpdates: [...addReplicas, ...deleteReplicas]
-        })
-        .promise();
+      await updateGlobalTable(
+        this.client,
+        tableName,
+        addRegions,
+        deleteRegions
+      );
     }
 
     this.state.tableName = tableName;
@@ -87,26 +96,9 @@ class GlobalDynamoDBTableComponent extends Component {
 
   async remove() {
     const tableName = this.state.tableName;
+    const regions = await getDeployedRegions(this.client, tableName);
 
-    const { GlobalTableDescription } = await this.client
-      .describeGlobalTable({
-        GlobalTableName: tableName
-      })
-      .promise();
-
-    const regions = GlobalTableDescription.ReplicationGroup.map(
-      rg => rg.RegionName
-    );
-
-    await Promise.all(
-      regions.map(async region => {
-        const dynamodb = await this.load(
-          "@serverless/aws-dynamodb",
-          `${tableName}_${region}`
-        );
-        return dynamodb.remove();
-      })
-    );
+    await this.deleteTableFromRegions(tableName, regions);
   }
 }
 

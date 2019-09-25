@@ -70,7 +70,7 @@ describe("Component tests", () => {
       });
     });
 
-    it("creates a DynamoDB table for each region in the replication group", () => {
+    it("creates a DynamoDB table for each region in the inputs", () => {
       expect(mockDynamoDB).toBeCalledTimes(2);
       expect(mockDynamoDB).toBeCalledWith({
         name: "MyGlobalTable",
@@ -86,7 +86,7 @@ describe("Component tests", () => {
       });
     });
 
-    it("creates replication group using the regions given", () => {
+    it("creates replication group", () => {
       expect(mockCreateGlobalTable).toBeCalledWith({
         GlobalTableName: "MyGlobalTable",
         ReplicationGroup: [
@@ -126,12 +126,13 @@ describe("Component tests", () => {
   describe("Update", () => {
     beforeEach(() => {
       mockDynamoDB.mockClear();
+      mockDynamoDBRemove.mockClear();
       mockCreateGlobalTablePromise.mockClear();
       mockDescribeGlobalTablePromise.mockClear();
       mockUpdateGlobalTable.mockClear();
     });
 
-    it("When input regions match remote replication group regions no updates happen", async () => {
+    it("When input regions match deployed regions no updates happen", async () => {
       mockCreateGlobalTablePromise.mockResolvedValueOnce({
         GlobalTableDescription: {}
       });
@@ -174,7 +175,7 @@ describe("Component tests", () => {
       expect(mockDynamoDB).toBeCalledTimes(0);
     });
 
-    it("When new input region is found but not deployed, is added to replication group", async () => {
+    it("When new input region is found but is not deployed, a new table is created and added to replication group", async () => {
       mockCreateGlobalTablePromise.mockResolvedValueOnce({
         GlobalTableDescription: {}
       });
@@ -198,6 +199,12 @@ describe("Component tests", () => {
       });
 
       expect(mockDynamoDB).toBeCalledTimes(1);
+      expect(mockDynamoDB).toBeCalledWith({
+        name: "MyGlobalTable",
+        region: "us-west-1",
+        attributeDefinitions: attributeDefinitions,
+        keySchema: keySchema
+      });
       expect(mockUpdateGlobalTable).toBeCalledWith({
         GlobalTableName: "MyGlobalTable",
         ReplicaUpdates: [
@@ -210,7 +217,7 @@ describe("Component tests", () => {
       });
     });
 
-    it("When input region is removed but deployed, is removed from replication group", async () => {
+    it("When input region is removed but deployed, table is deleted and is removed from replication group", async () => {
       mockCreateGlobalTablePromise.mockResolvedValueOnce({
         GlobalTableDescription: {}
       });
@@ -237,6 +244,7 @@ describe("Component tests", () => {
       });
 
       expect(mockDynamoDB).toBeCalledTimes(0);
+      expect(mockDynamoDBRemove).toBeCalledTimes(1);
       expect(mockUpdateGlobalTable).toBeCalledWith({
         GlobalTableName: "MyGlobalTable",
         ReplicaUpdates: [
