@@ -37,10 +37,10 @@ AWS_SECRET_ACCESS_KEY=XXX
 ```yml
 # serverless.yml
 
-myTable:
+myGlobalTable:
   component: "global-dynamodb-table"
   inputs:
-    name: nameOfTable
+    tableName: nameOfTable
     replicationGroup: ["eu-west-1", "us-west-1"]
     attributeDefinitions:
       - AttributeName: id
@@ -49,6 +49,8 @@ myTable:
       - AttributeName: id
         KeyType: HASH
 ```
+
+Your table will be automatically created and replicated through all the regions given in the `replicationGroup`.
 
 ### 4. Deploy
 
