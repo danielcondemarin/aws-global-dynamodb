@@ -1,0 +1,23 @@
+{
+  "name": "global-dynamodb-table",
+  "version": "1.0.0",
+  "description": "Deploy Global DynamoDB tables with ease via serverless components.",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [
+    "DynamoDB",
+    "Global",
+    "Serverless"
+  ],
+  "author": "Daniel Conde Marin <danielconde9@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^24.9.0"
+  },
+  "dependencies": {
+    "@serverless/core": "^1.0.0",
+    "ramda": "^0.26.1"
+  }
+}
