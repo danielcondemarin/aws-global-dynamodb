@@ -1,15 +1,15 @@
-# global-dynamodb-table
+# AWS Global DynamoDB
 
-Easily provision Global DynamoDB tables using [Serverless Components](https://github.com/serverless/components).
+Provision Global DynamoDB Tables in a few lines. Simply provide a list of regions where you want your table to be replicated and the component handles the rest :sparkles:. You can also add or remove regions at any time.
 
-&nbsp;
+Powered by [Serverless Components](https://github.com/serverless/components) :zap:
 
-1. [Install](#1-install)
-2. [Create](#2-create)
-3. [Configure](#3-configure)
-4. [Deploy](#4-deploy)
+# Contents
 
-&nbsp;
+- [Install](#1-install)
+- [Create](#2-create)
+- [Configure](#3-configure)
+- [Deploy](#4-deploy)
 
 ### 1. Install
 
@@ -38,9 +38,9 @@ AWS_SECRET_ACCESS_KEY=XXX
 # serverless.yml
 
 myGlobalTable:
-  component: "global-dynamodb-table"
+  component: "aws-global-dynamodb"
   inputs:
-    tableName: nameOfTable
+    tableName: myGlobalTable
     replicationGroup: ["eu-west-1", "us-west-1"]
     attributeDefinitions:
       - AttributeName: id
@@ -50,15 +50,11 @@ myGlobalTable:
         KeyType: HASH
 ```
 
-Your table will be automatically created and replicated through all the regions given in the `replicationGroup`.
-
 ### 4. Deploy
 
 ```shell
 $ serverless
 ```
-
-&nbsp;
 
 ### New to Components?
 
