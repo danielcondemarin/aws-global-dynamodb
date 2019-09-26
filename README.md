@@ -41,7 +41,9 @@ myGlobalTable:
   component: "aws-global-dynamodb"
   inputs:
     tableName: myGlobalTable
-    replicationGroup: ["eu-west-1", "us-west-1"]
+    replicationGroup:
+      - "eu-west-1"
+      - "us-west-1"
     attributeDefinitions:
       - AttributeName: id
         AttributeType: S
