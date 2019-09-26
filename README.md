@@ -1,6 +1,6 @@
 # AWS Global DynamoDB
 
-Provision Global DynamoDB Tables in a few lines. Simply provide a list of regions where you want your table to be replicated and the component handles the rest :sparkles:. You can also add or remove regions at any time.
+Provision Global DynamoDB Tables in a few lines. Simply provide a list of regions where you want your table to be replicated and the component handles the rest :sparkles: You can also add or remove regions at any time.
 
 Powered by [Serverless Components](https://github.com/serverless/components) :zap:
 
