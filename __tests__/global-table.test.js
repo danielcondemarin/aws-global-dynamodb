@@ -76,13 +76,15 @@ describe("Component tests", () => {
         name: "MyGlobalTable",
         region: "eu-west-1",
         attributeDefinitions,
-        keySchema
+        keySchema,
+        stream: true
       });
       expect(mockDynamoDB).toBeCalledWith({
         name: "MyGlobalTable",
         region: "us-west-1",
         attributeDefinitions,
-        keySchema
+        keySchema,
+        stream: true
       });
     });
 
@@ -203,7 +205,8 @@ describe("Component tests", () => {
         name: "MyGlobalTable",
         region: "us-west-1",
         attributeDefinitions: attributeDefinitions,
-        keySchema: keySchema
+        keySchema: keySchema,
+        stream: true
       });
       expect(mockUpdateGlobalTable).toBeCalledWith({
         GlobalTableName: "MyGlobalTable",

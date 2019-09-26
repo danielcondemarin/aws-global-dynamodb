@@ -10,7 +10,9 @@ const {
 class GlobalDynamoDBTableComponent extends Component {
   get client() {
     return new AWS.DynamoDB({
-      credentials: this.context.credentials.aws
+      credentials: this.context.credentials.aws,
+      // any region here works
+      region: "eu-west-1"
     });
   }
 
@@ -26,11 +28,14 @@ class GlobalDynamoDBTableComponent extends Component {
         `${globalTableName}_${region}`
       );
 
+      this.context.debug(`Creating new table in region ${region}`);
+
       return dynamodb({
         name: globalTableName,
         region,
         attributeDefinitions: attributeDefinitions,
-        keySchema: keySchema
+        keySchema: keySchema,
+        stream: true
       });
     });
 
@@ -43,6 +48,8 @@ class GlobalDynamoDBTableComponent extends Component {
         "@serverless/aws-dynamodb",
         `${globalTableName}_${region}`
       );
+
+      this.context.debug(`Deleting table from region ${region}`);
 
       return dynamodb.remove();
     });
@@ -59,7 +66,9 @@ class GlobalDynamoDBTableComponent extends Component {
 
     try {
       deployedRegions = await getDeployedRegions(this.client, tableName);
+      this.context.debug("Global table provisioned.");
     } catch (err) {
+      this.context.debug("Global table not provisioned.");
       globalTableDoesNotExist = true;
     }
 
