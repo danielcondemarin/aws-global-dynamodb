@@ -104,7 +104,7 @@ class GlobalDynamoDBTableComponent extends Component {
     await this.deleteTableFromRegions(inputTableName, deleteRegions);
 
     if (globalTableDoesNotExist) {
-      return createGlobalTable(this.client, inputTableName, inputRegions);
+      await createGlobalTable(this.client, inputTableName, inputRegions);
     } else {
       await updateGlobalTable(
         this.client,
@@ -121,6 +121,13 @@ class GlobalDynamoDBTableComponent extends Component {
 
   async remove() {
     const tableName = this.state.tableName;
+    console.log("TCL: remove -> tableName", tableName);
+
+    if (!tableName) {
+      this.context.debug("Table name not found in state. Aborting!");
+      return;
+    }
+
     const regions = await getDeployedRegions(this.client, tableName);
 
     await this.deleteTableFromRegions(tableName, regions);

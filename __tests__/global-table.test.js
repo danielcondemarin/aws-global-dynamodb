@@ -46,83 +46,86 @@ describe("Component tests", () => {
     }
   ];
 
-  describe("Create & Delete", () => {
-    let component;
+  it("creates a table for each region in the inputs and provisions replication group", async () => {
+    expect.assertions(4);
 
-    beforeAll(async () => {
-      const resp = {
-        GlobalTableDescription: {}
-      };
+    const resp = {
+      GlobalTableDescription: {}
+    };
 
-      mockDescribeGlobalTablePromise.mockRejectedValueOnce(
-        new Error("GlobalTable not found")
-      );
-      mockCreateGlobalTablePromise.mockResolvedValueOnce(resp);
-      mockCreateGlobalTablePromise.mockResolvedValueOnce(resp);
+    mockDescribeGlobalTablePromise.mockRejectedValueOnce(
+      new Error("GlobalTable not found")
+    );
+    mockCreateGlobalTablePromise.mockResolvedValueOnce(resp);
+    mockCreateGlobalTablePromise.mockResolvedValueOnce(resp);
 
-      component = await createComponent();
+    const component = await createComponent();
 
-      await component.default({
-        tableName: "MyGlobalTable",
-        replicationGroup: ["eu-west-1", "us-west-1"],
-        attributeDefinitions,
-        keySchema
-      });
+    await component.default({
+      tableName: "MyGlobalTable",
+      replicationGroup: ["eu-west-1", "us-west-1"],
+      attributeDefinitions,
+      keySchema
     });
 
-    it("creates a DynamoDB table for each region in the inputs", () => {
-      expect(mockDynamoDB).toBeCalledTimes(2);
-      expect(mockDynamoDB).toBeCalledWith({
-        name: "MyGlobalTable",
-        region: "eu-west-1",
-        attributeDefinitions,
-        keySchema,
-        stream: true
-      });
-      expect(mockDynamoDB).toBeCalledWith({
-        name: "MyGlobalTable",
-        region: "us-west-1",
-        attributeDefinitions,
-        keySchema,
-        stream: true
-      });
+    expect(mockDynamoDB).toBeCalledTimes(2);
+    expect(mockDynamoDB).toBeCalledWith({
+      name: "MyGlobalTable",
+      region: "eu-west-1",
+      attributeDefinitions,
+      keySchema,
+      stream: true
     });
-
-    it("creates replication group", () => {
-      expect(mockCreateGlobalTable).toBeCalledWith({
-        GlobalTableName: "MyGlobalTable",
-        ReplicationGroup: [
-          {
-            RegionName: "eu-west-1"
-          },
-          {
-            RegionName: "us-west-1"
-          }
-        ]
-      });
+    expect(mockDynamoDB).toBeCalledWith({
+      name: "MyGlobalTable",
+      region: "us-west-1",
+      attributeDefinitions,
+      keySchema,
+      stream: true
     });
-
-    it("deletes the table created in each region", async () => {
-      mockDescribeGlobalTablePromise.mockResolvedValueOnce({
-        GlobalTableDescription: {
-          ReplicationGroup: [
-            {
-              RegionName: "eu-west-1"
-            },
-            {
-              RegionName: "us-west-1"
-            }
-          ]
+    expect(mockCreateGlobalTable).toBeCalledWith({
+      GlobalTableName: "MyGlobalTable",
+      ReplicationGroup: [
+        {
+          RegionName: "eu-west-1"
+        },
+        {
+          RegionName: "us-west-1"
         }
-      });
-
-      await component.remove();
-
-      expect(mockDescribeGlobalTable).toBeCalledWith({
-        GlobalTableName: "MyGlobalTable"
-      });
-      expect(mockDynamoDBRemove).toBeCalledTimes(2);
+      ]
     });
+  });
+
+  it("deletes the table created in each region", async () => {
+    expect.assertions(2);
+
+    mockDescribeGlobalTablePromise.mockRejectedValueOnce(
+      new Error("GlobalTable not found")
+    );
+    mockDescribeGlobalTablePromise.mockResolvedValueOnce({
+      GlobalTableDescription: {
+        ReplicationGroup: ["eu-west-1", "us-west-1"]
+      }
+    });
+    mockCreateGlobalTablePromise.mockResolvedValueOnce({
+      GlobalTableDescription: {}
+    });
+
+    const component = await createComponent();
+
+    await component.default({
+      tableName: "MyGlobalTable",
+      replicationGroup: ["eu-west-1", "us-west-1"],
+      attributeDefinitions,
+      keySchema
+    });
+
+    await component.remove();
+
+    expect(mockDescribeGlobalTable).toBeCalledWith({
+      GlobalTableName: "MyGlobalTable"
+    });
+    expect(mockDynamoDBRemove).toBeCalledTimes(2);
   });
 
   describe("Update", () => {
@@ -134,7 +137,7 @@ describe("Component tests", () => {
       mockUpdateGlobalTable.mockClear();
     });
 
-    it("When input regions match deployed regions no updates happen", async () => {
+    it("When input regions match deployed regions no update happens", async () => {
       mockCreateGlobalTablePromise.mockResolvedValueOnce({
         GlobalTableDescription: {}
       });
@@ -260,7 +263,7 @@ describe("Component tests", () => {
       });
     });
 
-    it("When global table is renamed", async () => {
+    it("When global table is renamed an error is thrown", async () => {
       expect.assertions(4);
 
       mockCreateGlobalTablePromise.mockResolvedValueOnce({
@@ -309,5 +312,18 @@ describe("Component tests", () => {
       expect(mockDynamoDBRemove).toBeCalledTimes(0);
       expect(mockUpdateGlobalTable).toBeCalledTimes(0);
     });
+  });
+
+  it("When serverless remove is called but no table was provisioned earlier nothing happens", async () => {
+    component = await createComponent();
+
+    await component.remove({
+      tableName: "TableThatDoesNotExist",
+      replicationGroup: ["eu-west-1", "us-west-1"],
+      attributeDefinitions,
+      keySchema
+    });
+
+    expect(mockDynamoDBRemove).toBeCalledTimes(0);
   });
 });
