@@ -57,15 +57,30 @@ class GlobalDynamoDBTableComponent extends Component {
     return Promise.all(deleteTables);
   }
 
+  validateInputs(inputs) {
+    const inputTableName = inputs.tableName;
+    const stateTableName = this.state.tableName;
+
+    if (stateTableName) {
+      if (inputTableName !== stateTableName) {
+        throw new Error(
+          `Can't rename Global Table. Use serverless remove to delete '${stateTableName}' first.`
+        );
+      }
+    }
+  }
+
   async default(inputs = {}) {
     const inputRegions = inputs.replicationGroup.sort();
-    const tableName = inputs.tableName;
+    const inputTableName = inputs.tableName;
+
+    this.validateInputs(inputs);
 
     let deployedRegions = [];
     let globalTableDoesNotExist = false;
 
     try {
-      deployedRegions = await getDeployedRegions(this.client, tableName);
+      deployedRegions = await getDeployedRegions(this.client, inputTableName);
       this.context.debug("Global table provisioned.");
     } catch (err) {
       this.context.debug("Global table not provisioned.");
@@ -80,25 +95,26 @@ class GlobalDynamoDBTableComponent extends Component {
     const deleteRegions = difference(deployedRegions, inputRegions);
 
     await this.createTableInRegions(
-      tableName,
+      inputTableName,
       addRegions,
       inputs.attributeDefinitions,
       inputs.keySchema
     );
-    await this.deleteTableFromRegions(tableName, deleteRegions);
+
+    await this.deleteTableFromRegions(inputTableName, deleteRegions);
 
     if (globalTableDoesNotExist) {
-      return createGlobalTable(this.client, tableName, inputRegions);
+      return createGlobalTable(this.client, inputTableName, inputRegions);
     } else {
       await updateGlobalTable(
         this.client,
-        tableName,
+        inputTableName,
         addRegions,
         deleteRegions
       );
     }
 
-    this.state.tableName = tableName;
+    this.state.tableName = inputTableName;
 
     await this.save();
   }

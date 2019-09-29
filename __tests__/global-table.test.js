@@ -259,5 +259,55 @@ describe("Component tests", () => {
         ]
       });
     });
+
+    it("When global table is renamed", async () => {
+      expect.assertions(4);
+
+      mockCreateGlobalTablePromise.mockResolvedValueOnce({
+        GlobalTableDescription: {}
+      });
+      mockDescribeGlobalTablePromise.mockResolvedValueOnce({
+        GlobalTableDescription: {
+          ReplicationGroup: [
+            {
+              RegionName: "eu-west-1"
+            },
+            {
+              RegionName: "us-west-1"
+            }
+          ]
+        }
+      });
+
+      const component = await createComponent();
+
+      await component.default({
+        tableName: "MyGlobalTable",
+        replicationGroup: ["eu-west-1"],
+        attributeDefinitions,
+        keySchema
+      });
+
+      mockDynamoDB.mockClear();
+      mockDynamoDBRemove.mockClear();
+      mockUpdateGlobalTable.mockClear();
+
+      try {
+        await component.default({
+          tableName: "MyGlobalTableRenamed",
+          replicationGroup: ["eu-west-1"],
+          attributeDefinitions,
+          keySchema
+        });
+      } catch (e) {
+        expect(e.message).toEqual(
+          "Can't rename Global Table. Use serverless remove to delete 'MyGlobalTable' first."
+        );
+      }
+
+      expect(mockDynamoDB).toBeCalledTimes(0);
+      expect(mockDynamoDBRemove).toBeCalledTimes(0);
+      expect(mockUpdateGlobalTable).toBeCalledTimes(0);
+    });
   });
 });
