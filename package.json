@@ -1,6 +1,6 @@
 {
   "name": "aws-global-dynamodb",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Deploy Global DynamoDB tables with ease via serverless components.",
   "main": "index.js",
   "scripts": {
