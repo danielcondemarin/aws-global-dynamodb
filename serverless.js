@@ -130,6 +130,9 @@ class GlobalDynamoDBTableComponent extends Component {
     const regions = await getDeployedRegions(this.client, tableName);
 
     await this.deleteTableFromRegions(tableName, regions);
+
+    this.state = {};
+    await this.save();
   }
 }
 
