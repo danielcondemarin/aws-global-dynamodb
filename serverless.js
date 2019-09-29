@@ -121,7 +121,6 @@ class GlobalDynamoDBTableComponent extends Component {
 
   async remove() {
     const tableName = this.state.tableName;
-    console.log("TCL: remove -> tableName", tableName);
 
     if (!tableName) {
       this.context.debug("Table name not found in state. Aborting!");
