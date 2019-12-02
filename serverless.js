@@ -20,7 +20,9 @@ class GlobalDynamoDBTableComponent extends Component {
     globalTableName,
     regions,
     attributeDefinitions,
-    keySchema
+    keySchema,
+    localSecondaryIndexes,
+    globalSecondaryIndexes = []
   ) {
     const createTables = regions.map(async region => {
       const dynamodb = await this.load(
@@ -33,8 +35,10 @@ class GlobalDynamoDBTableComponent extends Component {
       return dynamodb({
         name: globalTableName,
         region,
-        attributeDefinitions: attributeDefinitions,
-        keySchema: keySchema,
+        attributeDefinitions,
+        keySchema,
+        localSecondaryIndexes,
+        globalSecondaryIndexes,
         stream: true
       });
     });
@@ -98,7 +102,9 @@ class GlobalDynamoDBTableComponent extends Component {
       inputTableName,
       addRegions,
       inputs.attributeDefinitions,
-      inputs.keySchema
+      inputs.keySchema,
+      inputs.localSecondaryIndexes,
+      inputs.globalSecondaryIndexes
     );
 
     await this.deleteTableFromRegions(inputTableName, deleteRegions);
